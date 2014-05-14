@@ -565,7 +565,7 @@ exit_data:
 exit_udev:
 	if (dev)
 		udev_device_unref(dev);
-	if (udev);
+	if (udev)
 		udev_unref(udev);
 
 exit:
