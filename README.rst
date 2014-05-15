@@ -18,22 +18,24 @@ for building this code, you will need to have libudev development libriaries
 
 openSUSE::
 
-zypper in libudev-devel
+    zypper in libudev-devel
 
 Fedora::
-yum install libudev-devel
+
+    yum install libudev-devel
 
 Ubuntu/Debian::
-apt-get install libudev-dev
 
-**Build:**
-::
-$ make
+    apt-get install libudev-dev
+
+**Build:**::
+
+    $ make
 
 
-**Install:**
-::
-$ make install DESTDIR=/usr/local
+**Install:**::
+
+    $ make install DESTDIR=/usr/local
 
 
 License
