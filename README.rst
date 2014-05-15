@@ -28,13 +28,13 @@ Ubuntu/Debian::
 
     apt-get install libudev-dev
 
-**Build:**::
-
+**Build:**
+::
     $ make
 
 
-**Install:**::
-
+**Install:**
+::
     $ make install DESTDIR=/usr/local
 
 
