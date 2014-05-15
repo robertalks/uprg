@@ -13,7 +13,7 @@ making the network interface names a bit weird:
 New::
 
     enp0s3 (kernel name eth0)
-    wlx0024d7e31130 (kernel name wlan0)
+    wlp3s0 (kernel name wlan0)
 
 Old::
 
