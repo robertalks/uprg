@@ -14,31 +14,29 @@ born.
 The initial project was written in bash and can be found at: 
 `https://github.com/robertalks/udev-generate-peristent-rule <https://github.com/robertalks/udev-generate-peristent-rule>`_.
 
-**Pre-build:**
-for building this code, you will need to have libudev development libriaries
+**Requirements:**
+for building this code, you will need to have libudev development libriaries, gcc and make.
 
 openSUSE::
 
-    zypper in libudev-devel
+    zypper in libudev-devel gcc make
 
 Fedora::
 
-    yum install libudev-devel
+    yum install libudev-devel gcc make
 
 Ubuntu/Debian::
 
-    apt-get install libudev-dev
+    apt-get install libudev-dev gcc make
 
 
-**Build:**
+**Instructions:**
 ::
+    $ git clone https://github.com/robertalks/uprg.git
+    $ cd uprg
     $ make
-
-
-**Install:**
-::
     $ make install DESTDIR=/usr/local
-
+   
 
 **Usage:**
 
