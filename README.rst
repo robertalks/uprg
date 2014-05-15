@@ -11,10 +11,12 @@ and it will rename the network interfaces based on their physical location on th
 making the network interface names a bit weird:
 
 New::
+
     enp0s3
     wlx0024d7e31130
 
 Old::
+
     eth0
     wlan0
 
