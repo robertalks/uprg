@@ -3,7 +3,7 @@ CC = gcc
 endif
 
 ifndef CFLAGS
-CFLAGS += -Wall -O2 -g
+CFLAGS = -Wall -O2 -g
 endif
 
 ifndef DESTDIR

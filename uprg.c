@@ -657,7 +657,8 @@ int main(int argc, char *argv[])
 	}
 
 exit_data:
-	free(path);
+	if (path)
+		free(path);
 	if (data)
 		device_unref(data);
 
