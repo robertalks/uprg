@@ -394,6 +394,30 @@ static void write_rule_stdout(struct device_info *data, int rule_type)
                        data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
 }
 
+static const char *write_comment(struct device_info *data)
+{
+	char *buf = NULL;
+	char device_type[20];
+	const char *comm;
+	int len;
+
+	if (strcmp(data->parent_subsystem, "pci") == 0)
+		sprintf(device_type, "PCI");
+	else if (strcmp(data->parent_subsystem, "usb") == 0)
+		sprintf(device_type, "USB");
+	else
+		sprintf(device_type, "Unknown");
+
+	len = strlen(device_type) + strlen(data->pci_id) + strlen(data->driver);
+	buf = malloc(len + 14);
+	sprintf(buf, "# %s device %s (%s)", device_type, data->pci_id, data->driver);
+
+	comm = strdup(buf);
+	free(buf);
+
+	return comm;
+}
+
 static int write_rule(struct device_info *data, char *filename, int rule_type)
 {
 	FILE *f;
@@ -402,7 +426,8 @@ static int write_rule(struct device_info *data, char *filename, int rule_type)
 		f = fopen(filename, "a");
 		if (f == NULL)
 			return 1;
-
+		const char *comm = write_comment(data);
+		fprintf(f, "%s\n", comm);
                 if (rule_type == 0)
 			fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
                                    "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
@@ -616,7 +641,7 @@ int main(int argc, char *argv[])
 	}
 
 exit_data:
-        free(path);
+	free(path);
 	if (data)
 		device_unref(data);
 
