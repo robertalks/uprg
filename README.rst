@@ -11,7 +11,7 @@ Some people do not like the new way of naming the network device, so uprg has be
 born. 
 
 The initial project was written in bash and can be found at: 
-`https://github.com/robertalks/udev-generate-peristent-rule <https://github.com/robertalks/udev-generate-peristent-rule>`_
+`https://github.com/robertalks/udev-generate-peristent-rule <https://github.com/robertalks/udev-generate-peristent-rule>`_.
 
 **Pre-build:**
 for building this code, you will need to have libudev development libriaries
