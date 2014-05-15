@@ -16,23 +16,24 @@ The initial project was written in bash and can be found at:
 **Pre-build:**
 for building this code, you will need to have libudev development libriaries
 
-openSUSE
-:: zypper in libudev-devel
+openSUSE::
 
-Fedora
-:: yum install libudev-devel
+zypper in libudev-devel
 
-Ubuntu/Debian
-:: apt-get install libudev-dev
+Fedora::
+yum install libudev-devel
+
+Ubuntu/Debian::
+apt-get install libudev-dev
 
 **Build:**
-
-:: $ make
+::
+$ make
 
 
 **Install:**
-
-::  $ make install DESTDIR=/usr/local
+::
+$ make install DESTDIR=/usr/local
 
 
 License
