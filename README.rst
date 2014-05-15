@@ -56,7 +56,7 @@ list all interfaces which can be renamed::
 License
 -------
 
-Copyright 2014 Robert Milasan <rmilasan@suse.com>.
+Copyright (C) 2014 Robert Milasan <rmilasan@suse.com>.
 
 uprg is free software made available under the GPL2. For details see
 the LICENSE file.
