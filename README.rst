@@ -3,13 +3,17 @@ uprg
 
 **udev persistent rule generator**
 
-This tool will help anybody to generate a persistent rule for a specified network
-interface. This is not need it for older distros which do systemd implemented, but those
-who do, they usually rely on `Predictable Network Interface Names <http://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/>`_, which means that the
-network interfaces will be named based on their physical location on the hardware.
-Some people do not like the new way of naming the network interfaces, so uprg has been
-born. 
+This tool will help to generate a persistent rule for a specified network interface.
+This is not need it for older distros which do not implement systemd.
 
+The current implementation in systemd is called `Predictable Network Interface Names <http://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/>`_
+and it will rename the network interfaces based on their physical location on the hardware,
+making the network interface names a bit weird:
+
+New Implementation               Old Implementation:
+---------------------------------------------------
+enp0s3				 eth0
+wlx0024d7e31130			 wlan0
 
 The initial project was written in bash and can be found at: 
 `https://github.com/robertalks/udev-generate-peristent-rule <https://github.com/robertalks/udev-generate-peristent-rule>`_.
