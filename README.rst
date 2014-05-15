@@ -43,19 +43,16 @@ Ubuntu/Debian::
 
 **Usage:**
 
-- generate a rule and be verbose, write the output to stdout
+generate a rule and be verbose, write the output to stdout::
 
-::
     $ uprg -v -c eth0 -n net0
 
-- generate a rule and write it to /etc/udev/rules.d/70-myinterface.rules
+generate a rule and write it to /etc/udev/rules.d/70-myinterface.rules::
 
-::
     $ uprg -c enp0s3 -n lan0 -o /etc/udev/rules.d/70-myinterface.rules
 
-- list all devices which can be renamed
+list all devices which can be renamed::
 
-::
     $ uprg -l
 
 
