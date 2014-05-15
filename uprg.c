@@ -26,6 +26,11 @@ static const char *syspath = "/sys/class/net";
 static const char *program = "uprg";
 static const char *program_long = "udev-persistent-rule-generator";
 static const char *version = "0.3";
+static const char *comment = "\nNOTE: Using the persistent rule generator might mean you will need to do extra work to ensure\n"
+                             "that it will work accordingly. This means, regenerating the initramfs/initrd image and/or using\n"
+                             "'net.ifnames=0' option at boot time.\n"
+                             "In openSUSE/SUSE, the user will need to regenerate the initramfs/initrd image, but usually there\n"
+                             "is no need for 'net.ifnames=0' option if the persistent rule is available in initramfs/initrd image.";
 
 static const struct option options[] = {
 	{ "current",  required_argument, NULL, 'c' },
@@ -375,6 +380,49 @@ static struct device_info *device_unref(struct device_info *data)
 	return NULL;
 }
 
+static void write_rule_stdout(struct device_info *data, int rule_type)
+{
+	if (rule_type == 0)
+		printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                       "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                       "KERNEL==\"%s*\", NAME=\"%s\"\n", 
+                       data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
+	if (rule_type == 1)
+		printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                       "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                       "KERNEL==\"%s*\", NAME=\"%s\"\n", 
+                       data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
+}
+
+static int write_rule(struct device_info *data, char *filename, int rule_type)
+{
+	FILE *f;
+
+	if (data && filename) {
+		f = fopen(filename, "a");
+		if (f == NULL)
+			return 1;
+
+                if (rule_type == 0)
+			fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                                   "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                   "KERNEL==\"%s*\", NAME=\"%s\"\n",
+                                   data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
+		else if (rule_type == 1)
+			fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                                   "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                   "KERNEL==\"%s*\", NAME=\"%s\"\n",
+                                   data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
+		else
+			return 1;
+
+		fclose(f);
+	} else
+		return 1;
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int r = 0;
@@ -545,20 +593,30 @@ int main(int argc, char *argv[])
                        data->syspath, data->dev_id, data->type, data->subsystem, data->parent_subsystem,
                        data->pci_id, data->driver);
 
-	if (use_mac)
-		printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                       "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                       "KERNEL==\"%s*\", NAME=\"%s\"\n", 
-                       data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
-	else
-		printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                       "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                       "KERNEL==\"%s*\", NAME=\"%s\"\n", 
-                       data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
+	if (output_file && strlen(output_file) != 0) {
+		printf("Writting persistent rule to %s\n", output_file);
+		if (use_mac) {
+			r = write_rule(data, output_file, 0);
+			write_rule_stdout(data, 0);
+		}
+		if (use_pci) {
+			r = write_rule(data, output_file, 1);
+			write_rule_stdout(data, 1);
+		}
+		if (r > 0) {
+			fprintf(stderr, "%s: error: unable to write rule to file %s\n", program, output_file);
+			goto exit_data;
+		}
+		printf("%s\n", comment);
+	} else {
+		if (use_mac)
+			write_rule_stdout(data, 0);
+		if (use_pci)
+			write_rule_stdout(data, 1);
+	}
 
-	free(path);
- 
 exit_data:
+        free(path);
 	if (data)
 		device_unref(data);
 
