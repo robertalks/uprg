@@ -10,10 +10,10 @@ The current implementation in systemd is called `Predictable Network Interface N
 and it will rename the network interfaces based on their physical location on the hardware,
 making the network interface names a bit weird:
 
-New Implementation               Old Implementation:
----------------------------------------------------
-enp0s3				 eth0
-wlx0024d7e31130			 wlan0
+New:               Old:
+enp0s3             eth0
+wlx0024d7e31130    wlan0
+
 
 The initial project was written in bash and can be found at: 
 `https://github.com/robertalks/udev-generate-peristent-rule <https://github.com/robertalks/udev-generate-peristent-rule>`_.
