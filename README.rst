@@ -10,13 +10,13 @@ The current implementation in systemd is called `Predictable Network Interface N
 and it will rename the network interfaces based on their physical location on the hardware,
 making the network interface names a bit weird:
 
-New:
-enp0s3
-wlx0024d7e31130
+New::
+   enp0s3
+   wlx0024d7e31130
 
-Old:
-eth0
-wlan0
+Old::
+   eth0
+   wlan0
 
 
 The initial project was written in bash and can be found at: 
