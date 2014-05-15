@@ -428,17 +428,19 @@ static int write_rule(struct device_info *data, char *filename, int rule_type)
 			return 1;
 		const char *comm = write_comment(data);
 		fprintf(f, "%s\n", comm);
-                if (rule_type == 0)
+                if (rule_type == 0) {
+			write_rule_stdout(data, rule_type);
 			fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
                                    "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
                                    "KERNEL==\"%s*\", NAME=\"%s\"\n",
                                    data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
-		else if (rule_type == 1)
+		} else if (rule_type == 1) {
+			write_rule_stdout(data, rule_type);
 			fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
                                    "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
                                    "KERNEL==\"%s*\", NAME=\"%s\"\n",
                                    data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
-		else
+		} else
 			return 1;
 
 		fclose(f);
@@ -558,6 +560,7 @@ int main(int argc, char *argv[])
 	if (path) {
 		if (lstat(path, &stats) != 0) {
 			fprintf(stderr, "%s: error: '%s' is not a invalid.\n", program, interface);
+			free(path);
 			r = 1;
 			goto exit;
 		}
@@ -620,14 +623,10 @@ int main(int argc, char *argv[])
 
 	if (output_file && strlen(output_file) != 0) {
 		printf("Writting persistent rule to %s\n", output_file);
-		if (use_mac) {
+		if (use_mac)
 			r = write_rule(data, output_file, 0);
-			write_rule_stdout(data, 0);
-		}
-		if (use_pci) {
+		if (use_pci)
 			r = write_rule(data, output_file, 1);
-			write_rule_stdout(data, 1);
-		}
 		if (r > 0) {
 			fprintf(stderr, "%s: error: unable to write rule to file %s\n", program, output_file);
 			goto exit_data;
