@@ -10,6 +10,8 @@ network interfaces will be named based on their physical location on the hardwar
 Some people do not like the new way of naming the network device, so uprg has been
 born. 
 
+`Predictable Network Interface Names <http://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/>`_
+
 The initial project was written in bash and can be found at: 
 `https://github.com/robertalks/udev-generate-peristent-rule <https://github.com/robertalks/udev-generate-peristent-rule>`_.
 
