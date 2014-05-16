@@ -584,7 +584,7 @@ int main(int argc, char *argv[])
 	if (!use_mac && !use_pci)
 		use_mac = true;
 
-	if (!interface && !interface_new) {
+	if (!interface || !interface_new) {
 		fprintf(stderr, "%s: error: missing or empty interfaces.\n", program);
 		r = 1;
 		goto exit;
