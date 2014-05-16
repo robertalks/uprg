@@ -214,6 +214,7 @@ static char *device_pci_id(struct udev_device *dev)
 	interface = device_interface(dev);
 	buf = device_syspath(interface);
 	sprintf(path, "%s/device/uevent", buf);
+
 	f = fopen(path, "re");
 	if (f == NULL)
 		goto exit;
@@ -226,8 +227,10 @@ static char *device_pci_id(struct udev_device *dev)
 			continue;
 		pos[0] = '\0';
 
-		if (strncmp(line, "PCI_ID=", 7) == 0)
+		if (strncmp(line, "PCI_ID=", 7) == 0) {
 			pci_id = strdup(&line[7]);
+			break;
+		}
 	}
 	fclose(f);
 
