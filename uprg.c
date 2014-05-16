@@ -608,7 +608,7 @@ int main(int argc, char *argv[])
 	path = device_syspath(interface);
 	if (path) {
 		if (lstat(path, &stats) != 0) {
-			fprintf(stderr, "%s: error: '%s' is not a invalid.\n", program, interface);
+			fprintf(stderr, "%s: error: '%s' is not a valid interface.\n", program, interface);
 			free(path);
 			r = 1;
 			goto exit;
@@ -674,7 +674,7 @@ int main(int argc, char *argv[])
 
 		r = rule_exists(data->interface_new, output_file);
 		if (r > 0 && r  == 2) {
-				fprintf(stderr, "%s: error: %s interface name already in use.\n", program, data->interface_new);
+				fprintf(stderr, "%s: error: '%s' interface name already in use.\n", program, data->interface_new);
 				goto exit_data;
 		}
 
@@ -685,7 +685,7 @@ int main(int argc, char *argv[])
 			r = write_rule(data, output_file, 1);
 
 		if (r > 0) {
-			fprintf(stderr, "%s: error: unable to write rule to file %s\n", program, output_file);
+			fprintf(stderr, "%s: error: unable to write rule to file '%s'\n", program, output_file);
 			goto exit_data;
 		}
 
