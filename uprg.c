@@ -45,9 +45,7 @@ static const char *program_long = "udev-persistent-rule-generator";
 static const char *version = "0.3";
 static const char *comment = "\nNOTE: Using the persistent rule generator might mean you will need to do extra work to ensure\n"
                              "that it will work accordingly. This means, regenerating the initramfs/initrd image and/or using\n"
-                             "'net.ifnames=0' option at boot time.\n"
-                             "In openSUSE/SUSE, the user will need to regenerate the initramfs/initrd image, but usually there\n"
-                             "is no need for 'net.ifnames=0' option if the persistent rule is available in initramfs/initrd image.";
+                             "'net.ifnames=0' option at boot time.";
 
 static const struct option options[] = {
 	{ "current",  required_argument, NULL, 'c' },
@@ -400,6 +398,38 @@ static struct device_info *device_unref(struct device_info *data)
 	return NULL;
 }
 
+static int rule_exists(char *interface, char *filename)
+{
+	FILE *f;
+	char line[4096];
+	int r = 0;
+
+	f = fopen(filename, "re");
+	if (f == NULL) {
+		r = 1;
+		return r;
+	}
+
+	while (fgets(line, sizeof(line), f) != NULL) {
+		char *pos, *buf = NULL;
+
+		pos = strchr(line, '\n');
+		if (pos == NULL)
+			continue;
+		pos[0] = '\0';
+
+		buf = strstr(line, interface);
+		if (buf) {
+			buf = NULL;
+			r = 2;
+			break;
+		}
+	}
+	fclose(f);
+
+	return r;
+}
+
 static void write_rule_stdout(struct device_info *data, int rule_type)
 {
 	if (rule_type == 0)
@@ -641,16 +671,25 @@ int main(int argc, char *argv[])
                        data->syspath, data->dev_id, data->type, data->subsystem, data->parent_subsystem,
                        data->pci_id, data->driver);
 
-	if (output_file && strlen(output_file) != 0) {
+	if (output_file != NULL && strlen(output_file) > 1) {
+
+		r = rule_exists(data->interface_new, output_file);
+		if (r > 0 && r  == 2) {
+				fprintf(stderr, "%s: error: %s interface name already in use.\n", program, data->interface_new);
+				goto exit_data;
+		}
+
 		printf("Writting persistent rule to %s\n", output_file);
 		if (use_mac)
 			r = write_rule(data, output_file, 0);
 		if (use_pci)
 			r = write_rule(data, output_file, 1);
+
 		if (r > 0) {
 			fprintf(stderr, "%s: error: unable to write rule to file %s\n", program, output_file);
 			goto exit_data;
 		}
+
 		printf("%s\n", comment);
 	} else {
 		if (use_mac)
