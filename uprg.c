@@ -420,7 +420,6 @@ static int rule_exists(char *interface, char *filename)
 
 		buf = strstr(line, interface);
 		if (buf) {
-			buf = NULL;
 			r = 2;
 			break;
 		}
