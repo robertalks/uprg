@@ -24,6 +24,8 @@
 #include <getopt.h>
 #include <libudev.h>
 
+#define STR_LEN 	16384
+
 struct device_info {
 	char *interface;
 	char *interface_new;
@@ -402,7 +404,7 @@ static struct device_info *device_unref(struct device_info *data)
 static int rule_exists(char *interface, char *filename)
 {
 	FILE *f;
-	char line[4096];
+	char line[STR_LEN];
 	int r = 0;
 
 	f = fopen(filename, "re");
