@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include <getopt.h>
 #include <libudev.h>
 
@@ -412,11 +413,18 @@ static int rule_exists(char *interface, char *filename)
 
 	while (fgets(line, sizeof(line), f) != NULL) {
 		char *pos, *buf = NULL;
+		size_t len;
 
-		pos = strchr(line, '\n');
-		if (pos == NULL)
+		pos = line;
+		while (isspace(pos[0]))
+			pos++;
+
+		if (pos[0] == '#')
 			continue;
-		pos[0] = '\0';
+
+		len = strlen(line);
+		if (len < 3)
+			continue;
 
 		buf = strstr(line, interface);
 		if (buf) {
