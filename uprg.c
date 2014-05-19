@@ -681,7 +681,7 @@ int main(int argc, char *argv[])
 	if (output_file != NULL && strlen(output_file) > 1) {
 
 		r = rule_exists(data->interface_new, output_file);
-		if (r > 0 && r  == 2) {
+		if (r == 2) {
 				fprintf(stderr, "%s: error: '%s' interface name already in use.\n", program, data->interface_new);
 				goto exit_data;
 		}
