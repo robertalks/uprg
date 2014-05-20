@@ -46,9 +46,8 @@ static const char *syspath = "/sys/class/net";
 static const char *program = "uprg";
 static const char *program_long = "udev-persistent-rule-generator";
 static const char *version = "0.3";
-static const char *comment = "\nNOTE: Using the persistent rule generator might mean you will need to do extra work to ensure\n"
-                             "that it will work accordingly. This means, regenerating the initramfs/initrd image and/or using\n"
-                             "'net.ifnames=0' option at boot time.";
+static const char *comment = "\nNOTE: Using the persistent rule generator might mean you will need to do extra work to ensure that it will work accordingly."
+                             "\nThis means, regenerating the initramfs/initrd image and/or using 'net.ifnames=0' option at boot time.";
 
 static const struct option options[] = {
 	{ "current",  required_argument, NULL, 'c' },
