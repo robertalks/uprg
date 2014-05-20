@@ -84,6 +84,38 @@ static void help(void)
                "    %s -p -c wlp3s0 -n wlan0 -o /etc/udev/rules.d/50-mynet.rules\n\n",program, program, program, program);
 }
 
+static void _log(int level, const char *fmt, ...)
+{
+	va_list ap;
+	const char *prefix = "";
+	FILE *output = stderr;
+
+	switch (level) {
+		case 0:
+			prefix = "error";
+			break;
+		case 1:
+			prefix = "warn";
+			break;
+		case 2:
+			prefix = "info";
+			output = stdout;
+			break;
+	}
+
+	if (fmt) {
+		va_start(ap, fmt);
+		fprintf(output, "%s: %s: ", program, prefix);
+		vfprintf(output, fmt, ap);
+		va_end(ap);
+	} else
+		fprintf(stderr, "%s: try -h|--help for more information.\n", program);
+}
+
+#define err(...) _log(0, __VA_ARGS__)
+#define warn(...) _log(1, __VA_ARGS__)
+#define info(...) _log(2, __VA_ARGS__)
+
 static char *device_syspath(const char *interface)
 {
 	char *path = NULL;
@@ -307,7 +339,7 @@ static void list_devices(void)
 
 	udev = udev_new();
 	if (!udev) {
-		fprintf(stderr, "%s: error: cannot create udev context.\n", program);
+		err("cannot create udev context.\n");
 		exit(1);
 	}
 
@@ -453,12 +485,11 @@ static void write_rule_stdout(struct device_info *data, int rule_type)
                        data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
 }
 
-static const char *write_comment(struct device_info *data)
+static char *write_comment(struct device_info *data)
 {
 	char *buf = NULL;
-	char device_type[20];
-	const char *comm;
-	int len;
+	char device_type[7];
+	size_t len;
 
 	if (strcmp(data->parent_subsystem, "pci") == 0)
 		sprintf(device_type, "PCI");
@@ -471,22 +502,25 @@ static const char *write_comment(struct device_info *data)
 	buf = malloc(len + 14);
 	sprintf(buf, "# %s device %s (%s)", device_type, data->pci_id, data->driver);
 
-	comm = strdup(buf);
-	free(buf);
-
-	return comm;
+	return buf;
 }
 
 static int write_rule(struct device_info *data, char *filename, int rule_type)
 {
 	FILE *f;
+	char *comm = NULL;
 
 	if (data && filename) {
 		f = fopen(filename, "a");
 		if (f == NULL)
 			return 1;
-		const char *comm = write_comment(data);
-		fprintf(f, "%s\n", comm);
+
+		comm = write_comment(data);
+		if (comm) {
+			fprintf(f, "%s\n", comm);
+			free(comm);
+		}
+
                 if (rule_type == 0) {
 			write_rule_stdout(data, rule_type);
 			fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
@@ -541,25 +575,35 @@ int main(int argc, char *argv[])
 				break;
 			case 'c': {
 				if (interface) {
-					fprintf(stderr, "%s: error: current interface already specified.\n", program);
+					err("current interface already specified.\n");
 					r = 1;
 					goto exit;
 				}
 				interface = optarg;
+				if (interface == NULL || strlen(interface) <= 2) {
+					err("current interface not specified or too small.\n");
+					r = 1;
+					goto exit;
+				}
 				break;
 			}
 			case 'n': {
 				if (interface_new) {
-					fprintf(stderr, "%s: error: new interface already specified.\n", program);
+					err("new interface already specified.\n");
 					r = 1;
 					goto exit;
 				}	
 				interface_new = optarg;
+				if (interface_new == NULL || strlen(interface_new) <= 2) {
+					err("new interface not specifed or too small.\n");
+					r = 1;
+					goto exit;
+				}
 				break;
 			}
 			case 'o': {
 				if (output_file) {
-					fprintf(stderr, "%s: error: output file already specified.\n", program);
+					err("output file already specified.\n");
 					r = 1;
 					goto exit;
 				}
@@ -580,13 +624,13 @@ int main(int argc, char *argv[])
 
 	if (argc <= 1) {
 		help();
-		fprintf(stderr, "%s: error: missing or invalid options.\n", program);
+		err("missing or invalid options.\n");
 		r = 1;
 		goto exit;
 	}
 
 	if (use_mac && use_pci) {
-		fprintf(stderr, "%s: error: you cant use both '-m' and '-p' options.\n", program);
+		err("you cant use both '-m' and '-p' options.\n");
 		r = 1;
 		goto exit;
 	}
@@ -594,31 +638,19 @@ int main(int argc, char *argv[])
 	if (!use_mac && !use_pci)
 		use_mac = true;
 
-	if (!interface || !interface_new) {
-		fprintf(stderr, "%s: error: missing or empty interfaces.\n", program);
-		r = 1;
-		goto exit;
-	}
-
-	if (strlen(interface) == 0 || strlen(interface_new) == 0) {
-		fprintf(stderr, "%s: error: missing or empty interfaces.\n", program);
-		r = 1;
-		goto exit;
-	}
-
 	if (strcmp(interface_new, "lo") == 0) {
-		fprintf(stderr, "%s: error: 'lo' interface is taken and not usable.\n", program);
+		err("'lo' interface is taken and not usable.\n");
 		r = 1;
 		goto exit;
 	}
 
 	if (strcmp(interface, interface_new) == 0)
-		fprintf(stderr, "%s: warn: you are trying to rename your interface to the same name.\n", program);
+		warn("you are trying to rename your interface to the same name.\n");
 
 	path = device_syspath(interface);
 	if (path) {
 		if (lstat(path, &stats) != 0) {
-			fprintf(stderr, "%s: error: '%s' is not a valid interface.\n", program, interface);
+			err("'%s' is not a valid interface.\n", interface);
 			free(path);
 			r = 1;
 			goto exit;
@@ -626,41 +658,41 @@ int main(int argc, char *argv[])
 	}
 
 	if (!physical_device(interface)) {
-		fprintf(stderr, "%s: error: interface '%s' is not a physical device.\n", program, interface);
+		err("interface '%s' is not a physical device.\n", interface);
 		r = 1; 
 		goto exit;
 	}
 
 	udev = udev_new();
 	if (!udev) {
-		fprintf(stderr, "%s: error: cannot create udev context.\n", program);
+		err("cannot create udev context.\n");
 		r = 1;
 		goto exit;
 	}
 
 	dev = udev_device_new_from_syspath(udev, path);
 	if (!dev) {
-		fprintf(stderr, "%s: error: unable to initialize device from udev.\n", program);
+		err("unable to initialize device from udev.\n");
 		r = 1;
 		goto exit_udev;
 	}
 
 	if (device_type(dev) != 1) {
-		fprintf(stderr, "%s: error: interface '%s' is not a supported device type.\n", program, interface);
+		err("interface '%s' is not a supported device type.\n", interface);
 		r = 1;
 		goto exit_udev;
 	}
 
 	data = calloc(1, sizeof(struct device_info));
 	if (!data) {
-		fprintf(stderr, "%s: error: unable to allocate memory.\n", program);
+		err("unable to allocate memory.\n");
 		r = 1;
 		goto exit_udev;
 	}
 
 	r = device_fillup(interface, interface_new, data, dev);
 	if (r > 0) {
-		fprintf(stderr, "%s: error: unable to fillup device structure.\n", program);
+		err("unable to fillup device structure.\n");
 		goto exit_data;
 	}
 
@@ -684,18 +716,18 @@ int main(int argc, char *argv[])
 
 		r = rule_exists(data->interface_new, output_file);
 		if (r == 2) {
-				fprintf(stderr, "%s: error: '%s' interface name already in use.\n", program, data->interface_new);
+				err("'%s' interface name already in use.\n", data->interface_new);
 				goto exit_data;
 		}
 
-		printf("Writting persistent rule to %s\n", output_file);
+		info("writing generated persistent rule to %s.\n", output_file);
 		if (use_mac)
 			r = write_rule(data, output_file, 0);
 		if (use_pci)
 			r = write_rule(data, output_file, 1);
 
 		if (r > 0) {
-			fprintf(stderr, "%s: error: unable to write rule to file '%s'\n", program, output_file);
+			err("unable to write rule to file '%s'.\n", output_file);
 			goto exit_data;
 		}
 
