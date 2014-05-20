@@ -472,16 +472,20 @@ static int rule_exists(char *interface, char *filename)
 
 static void write_rule_stdout(struct device_info *data, int rule_type)
 {
-	if (rule_type == 0)
-		printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                       "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                       "KERNEL==\"%s*\", NAME=\"%s\"\n", 
-                       data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
-	if (rule_type == 1)
-		printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                       "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                       "KERNEL==\"%s*\", NAME=\"%s\"\n", 
-                       data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
+	switch (rule_type) {
+			case 0:
+				printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                                       "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                       "KERNEL==\"%s*\", NAME=\"%s\"\n",
+                                       data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
+				break;
+			case 1:
+				printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                                       "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                       "KERNEL==\"%s*\", NAME=\"%s\"\n",
+                                       data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
+				break;
+	}
 }
 
 static char *write_comment(struct device_info *data)
@@ -520,21 +524,22 @@ static int write_rule(struct device_info *data, char *filename, int rule_type)
 			free(comm);
 		}
 
-                if (rule_type == 0) {
-			write_rule_stdout(data, rule_type);
-			fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                                   "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                                   "KERNEL==\"%s*\", NAME=\"%s\"\n",
-                                   data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
-		} else if (rule_type == 1) {
-			write_rule_stdout(data, rule_type);
-			fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                                   "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                                   "KERNEL==\"%s*\", NAME=\"%s\"\n",
-                                   data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
-		} else
-			return 1;
-
+		switch (rule_type) {
+				case 0:
+					write_rule_stdout(data, rule_type);
+					fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                                                   "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                                   "KERNEL==\"%s*\", NAME=\"%s\"\n",
+                                                   data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
+					break;
+				case 1:
+					write_rule_stdout(data, rule_type);
+					fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                                                   "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                                   "KERNEL==\"%s*\", NAME=\"%s\"\n",
+                                                   data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
+					break;
+		}
 		fclose(f);
 	} else
 		return 1;
@@ -654,6 +659,10 @@ int main(int argc, char *argv[])
 			r = 1;
 			goto exit;
 		}
+	} else {
+		err("interface 'path' is NULL.\n");
+		r = 1;
+		goto exit;
 	}
 
 	if (!physical_device(interface)) {
@@ -719,24 +728,16 @@ int main(int argc, char *argv[])
 				goto exit_data;
 		}
 
-		info("writing generated persistent rule to %s.\n", output_file);
-		if (use_mac)
-			r = write_rule(data, output_file, 0);
-		if (use_pci)
-			r = write_rule(data, output_file, 1);
-
+		info("writing generated persistent rule to '%s'.\n", output_file);
+		r = write_rule(data, output_file, use_mac == true ? 0 : 1);
 		if (r > 0) {
 			err("unable to write rule to file '%s'.\n", output_file);
 			goto exit_data;
 		}
 
 		printf("%s\n", comment);
-	} else {
-		if (use_mac)
-			write_rule_stdout(data, 0);
-		if (use_pci)
-			write_rule_stdout(data, 1);
-	}
+	} else
+		write_rule_stdout(data, use_mac == true ? 0 : 1);
 
 exit_data:
 	if (path)
