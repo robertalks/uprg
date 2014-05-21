@@ -4,7 +4,7 @@ uprg
 **udev persistent rule generator**
 
 This tool will help to generate a persistent rule for a specified network interface.
-This is not need it for older distros which do not implement systemd.
+This is not needed for older distros which do not implement systemd.
 
 The current implementation in systemd is called `Predictable Network Interface Names <http://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/>`_
 and it will rename the network interfaces based on their physical location on the hardware,
@@ -25,7 +25,7 @@ The initial project was written in bash and can be found at:
 `https://github.com/robertalks/udev-generate-peristent-rule <https://github.com/robertalks/udev-generate-peristent-rule>`_.
 
 **Requirements:**
-for building this code, you will need to have libudev development libriaries, gcc and make.
+for building this code, you will need to have libudev development libraries, gcc and make.
 
 openSUSE::
 
