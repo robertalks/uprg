@@ -121,6 +121,8 @@ static char *device_syspath(const char *interface)
  
 	if (interface) { 
 		path = malloc(strlen(syspath) + strlen(interface) + 2);
+		if (!path)
+			return NULL;
 		sprintf(path, "%s/%s", syspath, interface);
 	}
 
@@ -135,6 +137,8 @@ static char *device_devpath(struct udev_device *dev)
   
 	attr = udev_device_get_devpath(dev);
 	devpath = malloc(strlen(sysfs) + strlen(attr) + 1);
+	if (!devpath)
+		return NULL;
 	sprintf(devpath, "%s%s", sysfs, attr);
 
 	return devpath;
@@ -147,8 +151,7 @@ static char *device_interface(struct udev_device *dev)
   
 	attr = udev_device_get_sysname(dev);
 	if (attr) {
-		interface = malloc(strlen(attr) + 1);
-		sprintf(interface, "%s", attr);
+		interface = strdup(attr);
 	}
 
 	return interface;
@@ -157,13 +160,12 @@ static char *device_interface(struct udev_device *dev)
 static int device_type(struct udev_device *dev)
 {
 	const char *attr;
-	int type;
 
 	attr = udev_device_get_sysattr_value(dev, "type");
 	if (!attr)
 		return -1;
   
-	return type = strtol(attr, NULL, 10);
+	return atoi(attr);
 }
 
 static char *device_devtype(struct udev_device *dev)
@@ -171,8 +173,11 @@ static char *device_devtype(struct udev_device *dev)
 	const char *attr;
 	char *devtype;
   
-	attr = udev_device_get_devtype(dev);
 	devtype = malloc(6);
+	if (!devtype)
+		return NULL;
+
+	attr = udev_device_get_devtype(dev);
 	if (attr) {
 		if (strncmp(attr, "wlan", 4) == 0)
 			sprintf(devtype, "wlan");
@@ -204,8 +209,7 @@ static char *device_pci(struct udev_device *dev)
   
 	dev_parent = udev_device_get_parent(dev);
 	attr = udev_device_get_sysname(dev_parent);
-	pci = malloc(strlen(attr) + 1);
-	sprintf(pci, "%s", attr);
+	pci = strdup(attr);
   
 	return pci;
 }
@@ -218,8 +222,7 @@ static char *device_driver(struct udev_device *dev)
 
 	dev_parent = udev_device_get_parent(dev);
 	attr = udev_device_get_driver(dev_parent);
-	driver = malloc(strlen(attr) + 1);
-	sprintf(driver, "%s", attr);
+	driver = strdup(attr);
 
 	return driver;
 }
@@ -230,8 +233,7 @@ static char *device_dev_id(struct udev_device *dev)
 	char *dev_id = NULL;
 
 	attr = udev_device_get_sysattr_value(dev, "dev_id");
-	dev_id = malloc(strlen(attr) + 1);
-	sprintf(dev_id, "%s", attr);
+	dev_id = strdup(attr);
 
 	return dev_id;
 }
@@ -285,8 +287,7 @@ static char *device_subsystem(struct udev_device *dev)
 
 	attr = udev_device_get_subsystem(dev);
 	if (attr) {
-		subsystem = malloc(strlen(attr) + 1);
-		sprintf(subsystem, "%s", attr);
+		subsystem = strdup(attr);
 	}
 
 	return subsystem;
@@ -302,8 +303,7 @@ static char *device_parent_subsystem(struct udev_device *dev)
 	attr = udev_device_get_subsystem(dev_parent);
 
 	if (attr) {
-		parent_subsystem = malloc(strlen(attr) + 1);
-		sprintf(parent_subsystem, "%s", attr);
+		parent_subsystem = strdup(attr);
 	}
 
 	return parent_subsystem;
@@ -387,25 +387,22 @@ static void list_devices(void)
 
 static int device_fillup(char *interface, char *interface_new, struct device_info *data, struct udev_device *dev)
 {
-	int t;
+	if (!data)
+		return 1;
 
-	t = device_type(dev);
-	if (data) {
-		data->interface = strdup(interface);
-		data->interface_new = strdup(interface_new);
-		data->devpath = device_devpath(dev);
-		data->syspath = device_syspath(interface);
-		data->pci = device_pci(dev);
-		data->pci_id = device_pci_id(dev);
-		data->macaddr = device_macaddr(dev);
-		data->type = t;
-		data->dev_id = device_dev_id(dev);
-		data->devtype = device_devtype(dev);
-		data->subsystem = device_subsystem(dev);
-		data->parent_subsystem = device_parent_subsystem(dev);
-		data->driver = device_driver(dev);
-	} else
-		return 1; 
+	data->interface = strdup(interface);
+	data->interface_new = strdup(interface_new);
+	data->devpath = device_devpath(dev);
+	data->syspath = device_syspath(interface);
+	data->pci = device_pci(dev);
+	data->pci_id = device_pci_id(dev);
+	data->macaddr = device_macaddr(dev);
+	data->type = device_type(dev);
+	data->dev_id = device_dev_id(dev);
+	data->devtype = device_devtype(dev);
+	data->subsystem = device_subsystem(dev);
+	data->parent_subsystem = device_parent_subsystem(dev);
+	data->driver = device_driver(dev);
   
 	return 0;
 }
@@ -585,7 +582,7 @@ int main(int argc, char *argv[])
 				}
 				interface = optarg;
 				if (interface == NULL || strlen(interface) <= 2) {
-					err("current interface not specified or too small.\n");
+					err("current interface not specified or name too small.\n");
 					r = 1;
 					goto exit;
 				}
@@ -599,7 +596,7 @@ int main(int argc, char *argv[])
 				}	
 				interface_new = optarg;
 				if (interface_new == NULL || strlen(interface_new) <= 2) {
-					err("new interface not specifed or too small.\n");
+					err("new interface not specifed or name too small.\n");
 					r = 1;
 					goto exit;
 				}
