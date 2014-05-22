@@ -485,7 +485,7 @@ static char *write_comment(struct device_info *data)
 	return buf;
 }
 
-static void write_rule_file(FILE *file, struct device_info *data, int rule_type)
+static void write_rule(FILE *file, struct device_info *data, int rule_type)
 {
 	switch (rule_type) {
 			case RULE_BY_MAC:
@@ -503,7 +503,7 @@ static void write_rule_file(FILE *file, struct device_info *data, int rule_type)
 	}
 }
 
-static int write_rule(struct device_info *data, char *filename, int rule_type)
+static int write_rule_file(struct device_info *data, char *filename, int rule_type)
 {
 	FILE *file;
 	char *comm = NULL;
@@ -519,7 +519,7 @@ static int write_rule(struct device_info *data, char *filename, int rule_type)
 			free(comm);
 		}
 
-		write_rule_file(file, data, rule_type);
+		write_rule(file, data, rule_type);
 
 		if (file)
 			fclose(file);
@@ -714,7 +714,7 @@ int main(int argc, char *argv[])
 		}
 
 		printf("Writing generated persistent rule to '%s'.\n", output_file);
-		r = write_rule(data, output_file, use_mac == true ? RULE_BY_MAC : RULE_BY_PCI);
+		r = write_rule_file(data, output_file, use_mac == true ? RULE_BY_MAC : RULE_BY_PCI);
 		if (r > 0) {
 			err("unable to write rule to file '%s'.\n", output_file);
 			goto exit_data;
@@ -722,7 +722,7 @@ int main(int argc, char *argv[])
 
 		printf("%s\n", comment);
 	} else
-		write_rule_file(stdout, data, use_mac == true ? RULE_BY_MAC : RULE_BY_PCI);
+		write_rule(stdout, data, use_mac == true ? RULE_BY_MAC : RULE_BY_PCI);
 
 exit_data:
 	if (path)
