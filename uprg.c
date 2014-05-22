@@ -137,6 +137,7 @@ static char *device_devpath(struct udev_device *dev)
 	devpath = malloc(strlen(sysfs) + strlen(attr) + 1);
 	if (!devpath)
 		return NULL;
+
 	sprintf(devpath, "%s%s", sysfs, attr);
 
 	return devpath;
@@ -148,6 +149,7 @@ static char *device_interface(struct udev_device *dev)
 	char *interface = NULL;
   
 	attr = udev_device_get_sysname(dev);
+
 	if (attr) {
 		interface = strdup(attr);
 	}
@@ -170,19 +172,20 @@ static char *device_devtype(struct udev_device *dev)
 {
 	const char *attr;
 	char *devtype;
+	size_t size = 5;
   
-	devtype = malloc(6);
+	devtype = malloc(size);
 	if (!devtype)
 		return NULL;
 
 	attr = udev_device_get_devtype(dev);
 	if (attr) {
 		if (strncmp(attr, "wlan", 4) == 0)
-			sprintf(devtype, "wlan");
+			snprintf(devtype, size, "wlan");
 		if (strncmp(attr, "wwan", 4) == 0)
-			sprintf(devtype, "wwan");
+			snprintf(devtype, size, "wwan");
 	} else
-		sprintf(devtype, "eth");
+		snprintf(devtype, size, "eth");
 
 	return devtype;
 }
@@ -193,8 +196,9 @@ static char *device_macaddr(struct udev_device *dev)
 	char *macaddr = NULL;
 
 	attr = udev_device_get_sysattr_value(dev, "address");
-	macaddr = malloc(strlen(attr) + 1);
-	sprintf(macaddr, "%s", attr);
+
+	if (attr)
+		macaddr = strdup(attr);
 
 	return macaddr;
 }
@@ -207,7 +211,9 @@ static char *device_pci(struct udev_device *dev)
   
 	dev_parent = udev_device_get_parent(dev);
 	attr = udev_device_get_sysname(dev_parent);
-	pci = strdup(attr);
+
+	if (attr)
+		pci = strdup(attr);
   
 	return pci;
 }
@@ -220,7 +226,9 @@ static char *device_driver(struct udev_device *dev)
 
 	dev_parent = udev_device_get_parent(dev);
 	attr = udev_device_get_driver(dev_parent);
-	driver = strdup(attr);
+
+	if (attr)
+		driver = strdup(attr);
 
 	return driver;
 }
@@ -231,7 +239,9 @@ static char *device_dev_id(struct udev_device *dev)
 	char *dev_id = NULL;
 
 	attr = udev_device_get_sysattr_value(dev, "dev_id");
-	dev_id = strdup(attr);
+
+	if (attr)
+		dev_id = strdup(attr);
 
 	return dev_id;
 }
@@ -242,6 +252,7 @@ static char *device_pci_id(struct udev_device *dev)
 	char line[256], path[1024];
 	char *interface, *buf;
 	char *pci_id = NULL;
+	size_t size = 6;
 
 	interface = device_interface(dev);
 	buf = device_syspath(interface);
@@ -267,8 +278,8 @@ static char *device_pci_id(struct udev_device *dev)
 	fclose(f);
 
 	if (!pci_id) {
-		pci_id = malloc(6);
-		sprintf(pci_id, "0x:0x");
+		pci_id = malloc(size);
+		snprintf(pci_id, size, "0x:0x");
 	}
 
 exit:
@@ -284,6 +295,7 @@ static char *device_subsystem(struct udev_device *dev)
 	char *subsystem = NULL;
 
 	attr = udev_device_get_subsystem(dev);
+
 	if (attr) {
 		subsystem = strdup(attr);
 	}
@@ -340,11 +352,15 @@ static void list_devices(void)
 		exit(1);
 	}
 
-
 	enumerate = udev_enumerate_new(udev);
 	udev_enumerate_add_match_subsystem(enumerate, "net");
 	udev_enumerate_scan_devices(enumerate);
 	devices = udev_enumerate_get_list_entry(enumerate);
+
+	if (!devices) {
+		err("unable enumerate udev devices.\n");
+		exit(1);
+	}
 
 	udev_list_entry_foreach(dev_list_entry, devices) {
 		const char *path;
@@ -358,24 +374,30 @@ static void list_devices(void)
 			continue;
 
 		t = device_type(dev);
-		if (t != 1)
+		if (t != 1) {
+			udev_device_unref(dev);
 			continue;
+		}
 
 		i = device_interface(dev);
-		if (!physical_device(i))
+		if (!physical_device(i)) {
+			udev_device_unref(dev);
+			free(i);
 			continue;
+		}
 
 		m = device_macaddr(dev);
 		p = device_pci(dev);
 		d = device_devpath(dev);
 
-		if (i && m && p && d)
+		if (i && m && p && d) {
 			printf("I: INTERFACE: %s\nI: MACADDR: %s\nI: PCI: %s\nI: DEVPATH: %s\n", i, m, p, d);
+			free(i);
+			free(m);
+			free(p);
+			free(d);
+		}
 
-		free(i);
-		free(m);
-		free(p);
-		free(d);
 		udev_device_unref(dev);
 	}
 
@@ -468,18 +490,21 @@ static int rule_exists(char *interface, char *filename)
 static char *write_comment(struct device_info *data)
 {
 	char *buf = NULL;
-	char device_type[7];
+	char device_type[8];
 	size_t len;
 
 	if (strcmp(data->parent_subsystem, "pci") == 0)
-		sprintf(device_type, "PCI");
+		snprintf(device_type, sizeof(device_type), "PCI");
 	else if (strcmp(data->parent_subsystem, "usb") == 0)
-		sprintf(device_type, "USB");
+		snprintf(device_type, sizeof(device_type), "USB");
 	else
-		sprintf(device_type, "Unknown");
+		snprintf(device_type, sizeof(device_type), "Unknown");
 
 	len = strlen(device_type) + strlen(data->pci_id) + strlen(data->driver);
 	buf = malloc(len + 14);
+	if (!buf)
+		return NULL;
+
 	sprintf(buf, "# %s device %s (%s)", device_type, data->pci_id, data->driver);
 
 	return buf;
