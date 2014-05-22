@@ -25,6 +25,10 @@
 #include <libudev.h>
 
 #define STR_LEN 	16384
+#define RULE_BY_MAC	0
+#define RULE_BY_PCI	1
+#define LEVEL_ERR	0
+#define LEVEL_INFO	1
 
 struct device_info {
 	char *interface;
@@ -86,25 +90,20 @@ static void help(void)
 static void _log(int level, const char *fmt, ...)
 {
 	va_list ap;
-	const char *prefix = "";
-	FILE *output = stderr;
+	FILE *output = NULL;
 
 	switch (level) {
-		case 0:
-			prefix = "error";
+		case LEVEL_ERR:
+			output = stderr;
 			break;
-		case 1:
-			prefix = "warn";
-			break;
-		case 2:
-			prefix = "info";
+		case LEVEL_INFO:
 			output = stdout;
 			break;
 	}
 
 	if (fmt) {
 		va_start(ap, fmt);
-		fprintf(output, "%s: %s: ", program, prefix);
+		fprintf(output, "%s: ", program);
 		vfprintf(output, fmt, ap);
 		va_end(ap);
 	} else
@@ -112,13 +111,12 @@ static void _log(int level, const char *fmt, ...)
 }
 
 #define err(...) _log(0, __VA_ARGS__)
-#define warn(...) _log(1, __VA_ARGS__)
-#define info(...) _log(2, __VA_ARGS__)
+#define info(...) _log(1, __VA_ARGS__)
 
 static char *device_syspath(const char *interface)
 {
 	char *path = NULL;
- 
+
 	if (interface) { 
 		path = malloc(strlen(syspath) + strlen(interface) + 2);
 		if (!path)
@@ -467,24 +465,6 @@ static int rule_exists(char *interface, char *filename)
 	return r;
 }
 
-static void write_rule_stdout(struct device_info *data, int rule_type)
-{
-	switch (rule_type) {
-			case 0:
-				printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                                       "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                                       "KERNEL==\"%s*\", NAME=\"%s\"\n",
-                                       data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
-				break;
-			case 1:
-				printf("SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                                       "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                                       "KERNEL==\"%s*\", NAME=\"%s\"\n",
-                                       data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
-				break;
-	}
-}
-
 static char *write_comment(struct device_info *data)
 {
 	char *buf = NULL;
@@ -505,39 +485,45 @@ static char *write_comment(struct device_info *data)
 	return buf;
 }
 
+static void write_rule_file(FILE *file, struct device_info *data, int rule_type)
+{
+	switch (rule_type) {
+			case RULE_BY_MAC:
+				fprintf(file, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                                       "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                       "KERNEL==\"%s*\", NAME=\"%s\"\n",
+                                       data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
+				break;
+			case RULE_BY_PCI:
+				fprintf(file, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
+                                       "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                       "KERNEL==\"%s*\", NAME=\"%s\"\n",
+                                       data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
+				break;
+	}
+}
+
 static int write_rule(struct device_info *data, char *filename, int rule_type)
 {
-	FILE *f;
+	FILE *file;
 	char *comm = NULL;
 
 	if (data && filename) {
-		f = fopen(filename, "a");
-		if (f == NULL)
+		file = fopen(filename, "a");
+		if (file == NULL)
 			return 1;
 
 		comm = write_comment(data);
 		if (comm) {
-			fprintf(f, "%s\n", comm);
+			fprintf(file, "%s\n", comm);
 			free(comm);
 		}
 
-		switch (rule_type) {
-				case 0:
-					write_rule_stdout(data, rule_type);
-					fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                                                   "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                                                   "KERNEL==\"%s*\", NAME=\"%s\"\n",
-                                                   data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
-					break;
-				case 1:
-					write_rule_stdout(data, rule_type);
-					fprintf(f, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                                                   "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
-                                                   "KERNEL==\"%s*\", NAME=\"%s\"\n",
-                                                   data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
-					break;
-		}
-		fclose(f);
+		write_rule_file(file, data, rule_type);
+
+		if (file)
+			fclose(file);
+
 	} else
 		return 1;
 
@@ -581,11 +567,6 @@ int main(int argc, char *argv[])
 					goto exit;
 				}
 				interface = optarg;
-				if (interface == NULL || strlen(interface) <= 2) {
-					err("current interface not specified or name too small.\n");
-					r = 1;
-					goto exit;
-				}
 				break;
 			}
 			case 'n': {
@@ -595,11 +576,6 @@ int main(int argc, char *argv[])
 					goto exit;
 				}	
 				interface_new = optarg;
-				if (interface_new == NULL || strlen(interface_new) <= 2) {
-					err("new interface not specifed or name too small.\n");
-					r = 1;
-					goto exit;
-				}
 				break;
 			}
 			case 'o': {
@@ -639,6 +615,18 @@ int main(int argc, char *argv[])
 	if (!use_mac && !use_pci)
 		use_mac = true;
 
+	if (interface == NULL || strlen(interface) <= 0) {
+		err("current interface not specified.\n");
+		r = 1;
+		goto exit;
+	}
+
+	if (interface_new == NULL || strlen(interface_new) <= 2) {
+		err("new interface not specified or name too small.\n");
+		r = 1;
+		goto exit;
+	}
+
 	if (strcmp(interface_new, "lo") == 0) {
 		err("'lo' interface is taken and not usable.\n");
 		r = 1;
@@ -646,7 +634,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (strcmp(interface, interface_new) == 0)
-		warn("you are trying to rename your interface to the same name.\n");
+		info("you are trying to rename your interface to the same name.\n");
 
 	path = device_syspath(interface);
 	if (path) {
@@ -725,8 +713,8 @@ int main(int argc, char *argv[])
 				goto exit_data;
 		}
 
-		info("writing generated persistent rule to '%s'.\n", output_file);
-		r = write_rule(data, output_file, use_mac == true ? 0 : 1);
+		printf("Writing generated persistent rule to '%s'.\n", output_file);
+		r = write_rule(data, output_file, use_mac == true ? RULE_BY_MAC : RULE_BY_PCI);
 		if (r > 0) {
 			err("unable to write rule to file '%s'.\n", output_file);
 			goto exit_data;
@@ -734,7 +722,7 @@ int main(int argc, char *argv[])
 
 		printf("%s\n", comment);
 	} else
-		write_rule_stdout(data, use_mac == true ? 0 : 1);
+		write_rule_file(stdout, data, use_mac == true ? RULE_BY_MAC : RULE_BY_PCI);
 
 exit_data:
 	if (path)
