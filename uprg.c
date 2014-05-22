@@ -110,8 +110,8 @@ static void _log(int level, const char *fmt, ...)
 		fprintf(stderr, "%s: try -h|--help for more information.\n", program);
 }
 
-#define err(...) _log(0, __VA_ARGS__)
-#define info(...) _log(1, __VA_ARGS__)
+#define err(...) _log(LEVEL_ERR, __VA_ARGS__)
+#define info(...) _log(LEVEL_INFO, __VA_ARGS__)
 
 static char *device_syspath(const char *interface)
 {
