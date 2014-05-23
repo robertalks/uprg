@@ -372,7 +372,7 @@ static void list_devices(void)
 		if (!dev)
 			continue;
 
-		if (device_type(dev) != 1)
+		if (device_type(dev) != 1) { 
 			udev_device_unref(dev);
 			continue;
 		}
