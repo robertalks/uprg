@@ -365,7 +365,6 @@ static void list_devices(void)
 	udev_list_entry_foreach(dev_list_entry, devices) {
 		const char *path;
 		char *i = NULL, *m = NULL, *p = NULL, *d = NULL;
-		int t;
 
 		path = udev_list_entry_get_name(dev_list_entry);
 		dev = udev_device_new_from_syspath(udev, path);
@@ -373,8 +372,7 @@ static void list_devices(void)
 		if (!dev)
 			continue;
 
-		t = device_type(dev);
-		if (t != 1) {
+		if (device_type(dev) != 1)
 			udev_device_unref(dev);
 			continue;
 		}
