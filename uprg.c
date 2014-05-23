@@ -134,11 +134,13 @@ static char *device_devpath(struct udev_device *dev)
 	const char *attr;
   
 	attr = udev_device_get_devpath(dev);
-	devpath = malloc(strlen(sysfs) + strlen(attr) + 1);
-	if (!devpath)
-		return NULL;
 
-	sprintf(devpath, "%s%s", sysfs, attr);
+	if (attr) {
+		devpath = malloc(strlen(sysfs) + strlen(attr) + 1);
+		if (!devpath)
+			return NULL;
+		sprintf(devpath, "%s%s", sysfs, attr);
+	}
 
 	return devpath;
 }
@@ -150,9 +152,8 @@ static char *device_interface(struct udev_device *dev)
   
 	attr = udev_device_get_sysname(dev);
 
-	if (attr) {
+	if (attr)
 		interface = strdup(attr);
-	}
 
 	return interface;
 }
@@ -275,6 +276,7 @@ static char *device_pci_id(struct udev_device *dev)
 			break;
 		}
 	}
+
 	fclose(f);
 
 	if (!pci_id) {
@@ -296,9 +298,8 @@ static char *device_subsystem(struct udev_device *dev)
 
 	attr = udev_device_get_subsystem(dev);
 
-	if (attr) {
+	if (attr)
 		subsystem = strdup(attr);
-	}
 
 	return subsystem;
 }
@@ -312,9 +313,8 @@ static char *device_parent_subsystem(struct udev_device *dev)
 	dev_parent = udev_device_get_parent(dev);
 	attr = udev_device_get_subsystem(dev_parent);
 
-	if (attr) {
+	if (attr)
 		parent_subsystem = strdup(attr);
-	}
 
 	return parent_subsystem;
 }
