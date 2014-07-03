@@ -40,6 +40,7 @@ struct device_info {
 	char *macaddr;
 	int type;
 	char *dev_id;
+	char *dev_port;
 	char *devtype;
 	char *subsystem;
 	char *parent_subsystem;
@@ -247,6 +248,19 @@ static char *device_dev_id(struct udev_device *dev)
 	return dev_id;
 }
 
+static char *device_dev_port(struct udev_device *dev)
+{
+	const char *attr;
+	char *dev_port = NULL;
+
+	attr = udev_device_get_sysattr_value(dev, "dev_port");
+
+	if (attr)
+		dev_port = strdup(attr);
+
+	return dev_port;
+}
+
 static char *device_pci_id(struct udev_device *dev)
 {
 	FILE *f;
@@ -417,6 +431,7 @@ static int device_fillup(char *interface, char *interface_new, struct device_inf
 	data->macaddr = device_macaddr(dev);
 	data->type = device_type(dev);
 	data->dev_id = device_dev_id(dev);
+	data->dev_port = device_dev_port(dev);
 	data->devtype = device_devtype(dev);
 	data->subsystem = device_subsystem(dev);
 	data->parent_subsystem = device_parent_subsystem(dev);
@@ -438,6 +453,7 @@ static struct device_info *device_unref(struct device_info *data)
 	free(data->pci_id);
 	free(data->macaddr);
 	free(data->dev_id);
+	free(data->dev_port);
 	free(data->devtype);
 	free(data->subsystem);
 	free(data->parent_subsystem);
@@ -513,15 +529,15 @@ static void write_rule(FILE *file, struct device_info *data, int rule_type)
 	switch (rule_type) {
 			case RULE_BY_MAC:
 				fprintf(file, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                                       "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                       "ATTR{address}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{dev_port}==\"%s\", ATTR{type}==\"%d\", "
                                        "KERNEL==\"%s*\", NAME=\"%s\"\n",
-                                       data->subsystem, data->macaddr, data->dev_id, data->type, data->devtype, data->interface_new);
+                                       data->subsystem, data->macaddr, data->dev_id, data->dev_port, data->type, data->devtype, data->interface_new);
 				break;
 			case RULE_BY_PCI:
 				fprintf(file, "SUBSYSTEM==\"%s\", ACTION==\"add\", DRIVERS==\"?*\", "
-                                       "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
+                                       "KERNELS==\"%s\", ATTR{dev_id}==\"%s\", ATTR{dev_id}==\"%s\", ATTR{type}==\"%d\", "
                                        "KERNEL==\"%s*\", NAME=\"%s\"\n",
-                                       data->subsystem, data->pci, data->dev_id, data->type, data->devtype, data->interface_new);
+                                       data->subsystem, data->pci, data->dev_id, data->dev_port, data->type, data->devtype, data->interface_new);
 				break;
 	}
 }
@@ -719,14 +735,15 @@ int main(int argc, char *argv[])
                        "I: DEVPATH=%s\n"
                        "I: SYSPATH=%s\n"
                        "I: DEV_ID=%s\n"
+                       "I: DEV_PORT=%s\n"
                        "I: TYPE=%d\n"
                        "I: SUBSYSTEM=%s\n"
                        "I: PARENT_SUBSYSTEM=%s\n"
                        "I: PCI_ID=%s\n"
                        "I: DRIVER=%s\n",
                        data->interface, data->interface_new, data->macaddr, data->devpath, 
-                       data->syspath, data->dev_id, data->type, data->subsystem, data->parent_subsystem,
-                       data->pci_id, data->driver);
+                       data->syspath, data->dev_id, data->dev_port, data->type, data->subsystem, 
+                       data->parent_subsystem, data->pci_id, data->driver);
 
 	if (output_file != NULL && strlen(output_file) > 1) {
 
