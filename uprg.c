@@ -24,11 +24,7 @@
 #include <getopt.h>
 #include <libudev.h>
 
-#define STR_LEN 	16384
-#define RULE_BY_MAC	0
-#define RULE_BY_PCI	1
-#define LEVEL_ERR	0
-#define LEVEL_INFO	1
+#define STR_LEN		16384
 
 struct device_info {
 	char *interface;
@@ -45,6 +41,16 @@ struct device_info {
 	char *parent_subsystem;
 	char *driver;
 };
+
+typedef enum {
+	RULE_BY_MAC,
+	RULE_BY_PCI
+} Rules;
+
+typedef enum {
+	LEVEL_ERR,
+	LEVEL_INFO
+} Logging;
 
 static const char *syspath = "/sys/class/net";
 static const char *program = "uprg";
@@ -70,6 +76,7 @@ static void help(void)
 {
 	printf("Usage: %s [OPTION...]\n"
                " -h,--help                  Show this help\n"
+               " -V,--version               Show version\n"
                " -l,--list                  List available interfaces\n"
                " -m,--mac                   Generate the persistent rule based on interface MAC address\n"
                "                            (default option, if nothing is specified)\n"
@@ -87,7 +94,7 @@ static void help(void)
                "    %s -p -c wlp3s0 -n wlan0 -o /etc/udev/rules.d/50-mynet.rules\n\n",program, program, program, program);
 }
 
-static void _log(int level, const char *fmt, ...)
+static void _log(Logging level, const char *fmt, ...)
 {
 	va_list ap;
 	FILE *output = NULL;
@@ -508,7 +515,7 @@ static char *write_comment(struct device_info *data)
 	return buf;
 }
 
-static void write_rule(FILE *file, struct device_info *data, int rule_type)
+static void write_rule(FILE *file, struct device_info *data, Rules rule_type)
 {
 	switch (rule_type) {
 			case RULE_BY_MAC:
@@ -526,7 +533,7 @@ static void write_rule(FILE *file, struct device_info *data, int rule_type)
 	}
 }
 
-static int write_rule_file(struct device_info *data, char *filename, int rule_type)
+static int write_rule_file(struct device_info *data, char *filename, Rules rule_type)
 {
 	FILE *file;
 	char *comm = NULL;
@@ -662,7 +669,7 @@ int main(int argc, char *argv[])
 	path = device_syspath(interface);
 	if (path) {
 		if (lstat(path, &stats) != 0) {
-			err("'%s' is not a valid interface.\n", interface);
+			err("'%s' is not available.\n", interface);
 			free(path);
 			r = 1;
 			goto exit;
